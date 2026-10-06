@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GridScale — Dynamic Dot Pattern Generator</title>
+<style>
+  :root{
+    --bg:#101210; --panel:#171a17; --panel2:#1d211d; --line:#303630;
+    --text:#f2f4ef; --muted:#9aa29a; --accent:#d9ff67;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+  button,input,select{font:inherit}
+  button{cursor:pointer}
+  .app{display:grid;grid-template-columns:330px 1fr;min-height:100vh}
+  aside{border-right:1px solid var(--line);background:#131613;padding:24px;display:flex;flex-direction:column;gap:20px}
+  .brand{display:flex;align-items:center;justify-content:space-between}
+  .brand h1{font-size:15px;letter-spacing:-.02em;margin:0}
+  .brand span{font-size:11px;color:var(--muted)}
+  .section{border-top:1px solid var(--line);padding-top:16px}
+  .section:first-of-type{border-top:0;padding-top:0}
+  .section-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:12px}
+  .row{display:grid;grid-template-columns:1fr 82px;align-items:center;gap:12px;margin:10px 0}
+  label{font-size:12px;color:#cbd0ca}
+  input[type=number],select,input[type=text]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 9px;outline:none}
+  input:focus,select:focus{border-color:#667466}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .range-row{display:block;margin:12px 0}
+  .range-top{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px}
+  .value{color:#dbe1d9;font-variant-numeric:tabular-nums}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  button{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 12px;border-radius:9px}
+  button:hover{background:#242a24;transform:translateY(-1px)}
+  button:active{transform:translateY(0);filter:brightness(.94)}
+  button.success{border-color:#8dff9a;background:#19341d;color:#baffc0}
+  button.error{border-color:#ff7b7b;background:#351919;color:#ffb4b4}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .primary{background:var(--accent);color:#10120e;border-color:var(--accent);font-weight:700}
+  .primary:hover{background:#e5ff91}
+  .hint{font-size:10px;line-height:1.55;color:#778077;margin-top:auto}
+  main{min-width:0;display:flex;flex-direction:column}
+  .toolbar{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:16px}
+  .toolbar .meta{font-size:11px;color:var(--muted)}
+  .toolbar-actions{display:flex;gap:8px}
+  .stage{flex:1;display:grid;place-items:center;padding:38px;overflow:auto;background:
+    radial-gradient(circle at 50% 40%,rgba(255,255,255,.035),transparent 42%),
+    #0d0f0d}
+  .preview-wrap{width:min(1100px,92vw)}
+  .preview-shell{position:relative;background:#151815;border:1px solid #2a2e2a;border-radius:18px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+  #preview{display:block;width:100%;height:auto;border-radius:10px}
+  .status{display:flex;justify-content:space-between;margin-top:10px;color:#687168;font-size:10px;min-height:15px}
+  #status.success{color:#9dffa6}
+  #status.error{color:#ff9c9c}
+  .swatches{display:flex;gap:7px}
+  .swatch{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);cursor:pointer}
+  .checks{display:flex;gap:12px;flex-wrap:wrap}
+  .check{display:flex;align-items:center;gap:7px;font-size:11px;color:#aeb6ae}
+  .check input{accent-color:var(--accent)}
+  @media(max-width:850px){
+    .app{grid-template-columns:1fr}
+    aside{border-right:0;border-bottom:1px solid var(--line)}
+    .stage{padding:18px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><h1>GridScale</h1><span>v1.0</span></div>
+    <div class="section">
+      <div class="section-title">Pattern</div>
+      <div class="row"><label>Width</label><input id="w" type="number" min="200" max="4000" value="1600"></div>
+      <div class="row"><label>Height</label><input id="h" type="number" min="100" max="2400" value="520"></div>
+      <div class="row"><label>Columns</label><input id="cols" type="number" min="4" max="180" value="58"></div>
+      <div class="row"><label>Rows</label><input id="rows" type="number" min="2" max="80" value="8"></div>
+      <div class="row"><label>Grid gap</label><input id="gap" type="number" min="0" max="80" value="0"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Dot scaling</div>
+      <div class="range-row"><div class="range-top"><label>Minimum scale</label><span class="value" id="minV"></span></div><input id="min" type="range" min="0.05" max="1" step="0.01" value="0.16"></div>
+      <div class="range-row"><div class="range-top"><label>Maximum scale</label><span class="value" id="maxV"></span></div><input id="max" type="range" min="0.1" max="1.8" step="0.01" value="1"></div>
+      <div class="range-row"><div class="range-top"><label>Dot size</label><span class="value" id="sizeV"></span></div><input id="size" type="range" min="1" max="18" step="0.1" value="5"></div>
+      <div class="range-row"><div class="range-top"><label>Scale smoothness</label><span class="value" id="smoothV"></span></div><input id="smooth" type="range" min="0" max="1" step="0.01" value="0.42"></div>
+      <div class="range-row"><div class="range-top"><label>Density</label><span class="value" id="densityV"></span></div><input id="density" type="range" min="0.05" max="1" step="0.01" value="0.82"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Randomness</div>
+      <div class="row"><label>Seed</label><input id="seed" type="number" min="0" max="999999999" value="42817"></div>
+      <div class="actions"><button id="randomize" class="primary">Randomize</button><button id="reset">Reset</button></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Color</div>
+      <div class="swatches">
+        <div class="swatch" data-bg="#102615" data-dot="#d8e8d4" style="background:#102615"></div>
+        <div class="swatch" data-bg="#071d12" data-dot="#bdebb8" style="background:#071d12"></div>
+        <div class="swatch" data-bg="#111111" data-dot="#eeeeee" style="background:#111"></div>
+        <div class="swatch" data-bg="#f1f1ec" data-dot="#1a1a18" style="background:#f1f1ec"></div>
+        <div class="swatch" data-bg="#132033" data-dot="#b9d5ff" style="background:#132033"></div>
+      </div>
+      <div class="row"><label>Background</label><input id="bg" type="text" value="#102615"></div>
+      <div class="row"><label>Dot color</label><input id="dot" type="text" value="#d8e8d4"></div>
+      <div class="checks"><label class="check"><input id="rounded" type="checkbox" checked> Rounded container</label><label class="check"><input id="alpha" type="checkbox" checked> Scale opacity</label></div>
+    </div>
+    <div class="hint">Positions never randomize. Every dot is anchored to the same mathematical grid. Randomness only affects scale (and optionally opacity), with spatially correlated noise to keep the pattern controlled rather than chaotic.</div>
+  </aside>
+  <main>
+    <div class="toolbar"><div class="meta" id="meta">1600 × 520 · 58 × 8 grid</div><div class="toolbar-actions"><button id="copySvg">Copy SVG</button><button id="exportSvg">Export SVG</button><button id="exportPng">Export PNG</button></div></div>
+    <div class="stage"><div class="preview-wrap"><div class="preview-shell"><svg id="preview" viewBox="0 0 1600 520" xmlns="http://www.w3.org/2000/svg" aria-label="Generated dot pattern"></svg><div class="status"><span id="status">Ready</span><span id="count">464 dots</span></div></div></div></div>
+  </main>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const els = {w:$('w'),h:$('h'),cols:$('cols'),rows:$('rows'),gap:$('gap'),min:$('min'),max:$('max'),size:$('size'),smooth:$('smooth'),density:$('density'),seed:$('seed'),bg:$('bg'),dot:$('dot'),rounded:$('rounded'),alpha:$('alpha'),preview:$('preview')};
+  const defaults={w:1600,h:520,cols:58,rows:8,gap:0,min:.16,max:1,size:5,smooth:.42,density:.82,seed:42817,bg:'#102615',dot:'#d8e8d4'};
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+  function hash(x){x=Math.sin(x*127.1+311.7)*43758.5453123;return x-Math.floor(x)}
+  function smoothstep(t){return t*t*(3-2*t)}
+  function valueNoise(x,y,seed,cell){const gx=x/cell,gy=y/cell,x0=Math.floor(gx),y0=Math.floor(gy),fx=smoothstep(gx-x0),fy=smoothstep(gy-y0),n=(ix,iy)=>hash(seed+ix*374761393+iy*668265263),a=n(x0,y0),b=n(x0+1,y0),c=n(x0,y0+1),d=n(x0+1,y0+1);return a+(b-a)*fx+(c+(d-c)*fx-a-(b-a)*fx)*fy}
+  function val(id){return parseFloat(els[id].value)}
+  function intVal(id){return parseInt(els[id].value,10)}
+  let statusTimer;
+  function showStatus(message,type='success'){const el=$('status');el.textContent=message;el.className=type;clearTimeout(statusTimer);statusTimer=setTimeout(()=>{el.textContent=`Seed ${intVal('seed')} · grid locked`;el.className=''},2600)}
+  function build(){
+    const W=intVal('w'),H=intVal('h'),C=intVal('cols'),R=intVal('rows'),min=val('min'),max=val('max'),base=val('size'),smooth=val('smooth'),density=val('density'),seed=intVal('seed');
+    if(max<min)els.max.value=min;const maxScale=Math.max(min,val('max'));
+    els.preview.setAttribute('viewBox',`0 0 ${W} ${H}`);els.preview.innerHTML='';
+    const ns='http://www.w3.org/2000/svg',bg=document.createElementNS(ns,'rect');bg.setAttribute('width',W);bg.setAttribute('height',H);bg.setAttribute('fill',els.bg.value.trim()||'#102615');if(els.rounded.checked)bg.setAttribute('rx',Math.min(64,H*.22));els.preview.appendChild(bg);
+    const marginX=Math.max(base,W*.015),marginY=Math.max(base,H*.12),usableW=W-marginX*2,usableH=H-marginY*2,stepX=usableW/Math.max(1,C-1),stepY=usableH/Math.max(1,R-1),minStep=Math.min(stepX,stepY),radiusBase=Math.max(.5,Math.min(base,minStep*.28)),noiseCell=Math.max(1,1+smooth*4.5);
+    let count=0;const frag=document.createDocumentFragment();
+    for(let y=0;y<R;y++)for(let x=0;x<C;x++){
+      const px=marginX+x*stepX,py=marginY+y*stepY,correlated=valueNoise(x,y,seed,noiseCell),independent=hash(seed+x*73856093+y*19349663+83492791),n=correlated*(.55+.45*smooth)+independent*(.45-.45*smooth),visibility=n<=density?1:clamp((density+.07-n)/.07,0,1);
+      if(visibility<=0)continue;
+      const shaped=Math.pow(n,.88),scale=min+(maxScale-min)*shaped,r=radiusBase*scale,c=document.createElementNS(ns,'circle');
+      c.setAttribute('cx',px.toFixed(3));c.setAttribute('cy',py.toFixed(3));c.setAttribute('r',r.toFixed(3));c.setAttribute('fill',els.dot.value.trim()||'#d8e8d4');
+      if(els.alpha.checked){const opacity=clamp(.26+.74*(scale/Math.max(maxScale,.0001)),.18,1)*visibility;c.setAttribute('opacity',opacity.toFixed(3))}else if(visibility<1)c.setAttribute('opacity',visibility.toFixed(3));
+      frag.appendChild(c);count++;
+    }
+    els.preview.appendChild(frag);$('meta').textContent=`${W} × ${H} · ${C} × ${R} grid`;$('count').textContent=`${count} dots`;$('status').textContent=`Seed ${seed} · grid locked`;
+    ['min','max','size','smooth','density'].forEach(id=>{$(id+'V').textContent=id==='smooth'||id==='density'?Math.round(val(id)*100)+'%':id==='min'||id==='max'?val(id).toFixed(2)+'×':val(id).toFixed(1)})
+  }
+  function randomize(){els.seed.value=Math.floor(Math.random()*999999999);build();showStatus('New pattern generated ✓')}
+  function reset(){Object.entries(defaults).forEach(([k,v])=>els[k].value=v);els.rounded.checked=true;els.alpha.checked=true;build();showStatus('Pattern reset ✓')}
+  function svgString(){const clone=els.preview.cloneNode(true);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');clone.setAttribute('version','1.1');clone.setAttribute('role','img');clone.removeAttribute('aria-label');const serialized=new XMLSerializer().serializeToString(clone);return '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<!-- Generated by GridScale -->\n'+serialized}
+  function download(blob,name){try{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showStatus(name.endsWith('.svg')?'SVG downloaded ✓':'PNG downloaded ✓')}catch(err){showStatus('Download failed — try again','error');console.error(err)}}
+  function exportSVG(){download(new Blob([svgString()],{type:'image/svg+xml;charset=utf-8'}),'gridscale-pattern.svg')}
+  async function copySVG(){const svg=svgString();if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){try{const item=new ClipboardItem({'image/svg+xml':new Blob([svg],{type:'image/svg+xml'}),'text/plain':new Blob([svg],{type:'text/plain')});await navigator.clipboard.write([item]);showStatus('SVG copied — paste directly into Figma ✓');return}catch(err){console.warn('SVG clipboard MIME write failed:',err)}}try{await navigator.clipboard.writeText(svg);showStatus('SVG source copied — paste into Figma or an SVG editor ✓')}catch(err){showStatus('Clipboard blocked — use Export SVG','error');console.error(err)}}
+  async function exportPNG(){const W=intVal('w'),H=intVal('h'),svg=svgString(),blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');canvas.width=W*2;canvas.height=H*2;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);canvas.toBlob(png=>download(png,'gridscale-pattern.png'),'image/png');URL.revokeObjectURL(url)};img.src=url}
+  document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',build));$('randomize').addEventListener('click',randomize);$('reset').addEventListener('click',reset);$('exportSvg').addEventListener('click',exportSVG);$('exportPng').addEventListener('click',exportPNG);$('copySvg').addEventListener('click',copySVG);
+  document.querySelectorAll('.swatch').forEach(s=>s.addEventListener('click',()=>{els.bg.value=s.dataset.bg;els.dot.value=s.dataset.dot;build()}));build();
+})();
+</script>
+</body>
+</html>
